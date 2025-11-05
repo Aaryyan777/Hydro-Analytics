@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictive Precision: Water Quality Analysis</title>
+    <style>
+        body {
+            background-color: #0b3d91; /* NASA Blue */
+            color: #ffffff;
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        header {
+            width: 100%;
+            background-color: #000000;
+            padding: 20px 0;
+            text-align: center;
+            border-bottom: 2px solid #ff3d3d; /* NASA Red */
+        }
+        header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            letter-spacing: 2px;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        .form-container {
+            background-color: #1a2a4f;
+            padding: 30px;
+            border-radius: 10px;
+            width: 45%;
+            min-width: 400px;
+            margin-bottom: 30px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+        h2 {
+            color: #ffffff;
+            border-bottom: 1px solid #ff3d3d;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            border: 1px solid #cccccc;
+            background-color: #e0e0e0;
+            color: #000000;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: #ff3d3d; /* NASA Red */
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #d62f2f;
+        }
+        .prediction-result {
+            margin-top: 20px;
+            font-size: 1.5em;
+            text-align: center;
+        }
+        .prediction-result span {
+            font-weight: bold;
+            color: #ff3d3d;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Predictive Precision: Water Quality Analysis</h1>
+    </header>
+
+    <div class="container">
+        <div class="form-container">
+            <h2>NYC Water Quality Prediction</h2>
+            <form id="prediction-form">
+                <label for="sample_class">Sample Class:</label>
+                <select id="sample_class" name="sample_class">
+                    <option value="Compliance">Compliance</option>
+                    <option value="Operational">Operational</option>
+                </select><br><br>
+
+                <label for="chlorine">Residual Free Chlorine (mg/L):</label>
+                <input type="number" id="chlorine" name="chlorine" step="0.01" required><br><br>
+
+                <label for="turbidity">Turbidity (NTU):</label>
+                <input type="number" id="turbidity" name="turbidity" step="0.01" required><br><br>
+
+                <label for="month">Sample Month:</label>
+                <input type="number" id="month" name="month" min="1" max="12" required><br><br>
+
+                <label for="dayofweek">Sample Day of Week:</label>
+                <input type="number" id="dayofweek" name="dayofweek" min="0" max="6" required><br><br>
+
+                <label for="hour">Sample Hour:</label>
+                <input type="number" id="hour" name="hour" min="0" max="23" required><br><br>
+
+                <button type="submit">Predict</button>
+            </form>
+            <div class="prediction-result">Prediction: <span id="prediction"></span></div>
+        </div>
+
+        <div class="form-container">
+            <h2>Brisbane Anomaly Detection</h2>
+            <form id="brisbane-prediction-form">
+                <label for="Chlorophyll">Chlorophyll:</label>
+                <input type="number" id="Chlorophyll" name="Chlorophyll" step="0.01" required><br><br>
+
+                <label for="Turbidity">Turbidity:</label>
+                <input type="number" id="Turbidity" name="Turbidity" step="0.01" required><br><br>
+
+                <label for="Temperature">Temperature:</label>
+                <input type="number" id="Temperature" name="Temperature" step="0.01" required><br><br>
+
+                <label for="Dissolved Oxygen">Dissolved Oxygen:</label>
+                <input type="number" id="Dissolved Oxygen" name="Dissolved Oxygen" step="0.01" required><br><br>
+
+                <label for="pH">pH:</label>
+                <input type="number" id="pH" name="pH" step="0.01" required><br><br>
+
+                <label for="Salinity">Salinity:</label>
+                <input type="number" id="Salinity" name="Salinity" step="0.01" required><br><br>
+
+                <button type="submit">Predict Anomaly</button>
+            </form>
+            <div class="prediction-result">Prediction: <span id="brisbane-prediction"></span></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('prediction-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+            fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                document.getElementById('prediction').textContent = result.prediction;
+            });
+        });
+
+        document.getElementById('brisbane-prediction-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+            fetch('/predict_anomaly_brisbane', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                document.getElementById('brisbane-prediction').textContent = result.prediction;
+            });
+        });
+    </script>
+</body>
+</html>
