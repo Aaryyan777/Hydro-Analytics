@@ -215,15 +215,3 @@ Future work could involve:
 
 ---
 
-## 6. Phase 4: Operationalization
-
-### 6.1. Objective
-
-To make the unsupervised anomaly detection model accessible and interactive by integrating it into the existing Flask web application.
-
-### 6.2. Plan
-
-- **Model Selection:** The Isolation Forest model will be used for this phase due to its balance of performance and efficiency.
-- **Backend Integration:** The `app.py` script has been modified to load the trained `isolation_forest_model.joblib` and expose a new API endpoint (`/predict_anomaly_brisbane`) for real-time anomaly prediction. For features not provided in the API call, the mean value from the training dataset is used as a default.
-- **Frontend Redesign:** The `index.html` file was completely overhauled to implement a new visual design inspired by NASA's aesthetic. This included a new color scheme (dark blue, white, and red), modern typography, and a clean, professional layout. The data visualizations were removed to create a more focused and streamlined user experience centered on the prediction forms.
-
