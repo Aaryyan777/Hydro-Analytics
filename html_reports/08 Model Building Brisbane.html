@@ -1,0 +1,74 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>08 Model Building Brisbane</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        h1, h2 { color: #333; }
+        .code, .output, .error {
+            background-color: #f5f5f5;
+            padding: 1em;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .code { background-color: #2d2d2d; color: #f1f1f1; }
+        .error { background-color: #fff0f0; color: #c00; }
+    </style>
+</head>
+<body>
+    <h1>08 Model Building Brisbane</h1>
+    <h2>Code</h2>
+    <pre class="code"><code>
+import pandas as pd
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+from imblearn.over_sampling import SMOTE
+from xgboost import XGBClassifier
+import joblib
+
+# Load the preprocessed data
+df = pd.read_csv(r&quot;C:\Users\DELL\Desktop\predict\brisbane-water-quality-preprocessed.csv&quot;)
+
+# Separate features and target
+X = df.drop(columns=[&#x27;Deterioration&#x27;])
+y = df[&#x27;Deterioration&#x27;]
+
+# Use SMOTE to oversample the minority class
+smote = SMOTE(random_state=42)
+X_resampled, y_resampled = smote.fit_resample(X, y)
+
+# Define the model
+scale_pos_weight = y.value_counts()[0] / y.value_counts()[1]
+model = XGBClassifier(scale_pos_weight=scale_pos_weight, random_state=42)
+
+# Define the cross-validation strategy
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+# Evaluate the model
+metrics = [&#x27;accuracy&#x27;, &#x27;f1&#x27;, &#x27;precision&#x27;, &#x27;recall&#x27;]
+for metric in metrics:
+    scores = cross_val_score(model, X_resampled, y_resampled, cv=cv, scoring=metric)
+    print(f&quot;Mean {metric}: {scores.mean():.4f}&quot;)
+
+# Train the final model
+model.fit(X_resampled, y_resampled)
+
+# Save the model
+joblib.dump(model, &#x27;water_quality_model_brisbane_xgb.joblib&#x27;)
+
+print(&quot;\nModel training complete. Model saved to water_quality_model_brisbane_xgb.joblib&quot;)
+</code></pre>
+    
+    <h2>Output</h2>
+    <pre class="output"><code>Mean accuracy: 0.9999
+Mean f1: 0.9999
+Mean precision: 0.9998
+Mean recall: 1.0000
+
+Model training complete. Model saved to water_quality_model_brisbane_xgb.joblib
+</code></pre>
+
+</body>
+</html>

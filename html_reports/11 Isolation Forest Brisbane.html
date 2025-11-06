@@ -1,0 +1,103 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>11 Isolation Forest Brisbane</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        h1, h2 { color: #333; }
+        .code, .output, .error {
+            background-color: #f5f5f5;
+            padding: 1em;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .code { background-color: #2d2d2d; color: #f1f1f1; }
+        .error { background-color: #fff0f0; color: #c00; }
+    </style>
+</head>
+<body>
+    <h1>11 Isolation Forest Brisbane</h1>
+    <h2>Code</h2>
+    <pre class="code"><code>
+import pandas as pd
+from sklearn.ensemble import IsolationForest
+import joblib
+
+# Load the preprocessed data
+df = pd.read_csv(r&quot;C:\Users\DELL\Desktop\predict\brisbane-water-quality-preprocessed.csv&quot;)
+
+# Drop the rule-based &#x27;Deterioration&#x27; column for unsupervised learning
+X = df.drop(columns=[&#x27;Deterioration&#x27;])
+
+# Initialize and train the IsolationForest model
+# The &#x27;contamination&#x27; parameter is an estimate of the proportion of outliers in the data.
+# We&#x27;ll start with 1%, which is similar to the proportion from our rule-based approach.
+iso_forest = IsolationForest(n_estimators=100, contamination=0.01, random_state=42)
+iso_forest.fit(X)
+
+# Predict the anomalies (-1 for anomalies, 1 for inliers)
+predictions = iso_forest.predict(X)
+
+# Add the predictions to the original dataframe
+df[&#x27;Anomaly_IsolationForest&#x27;] = predictions
+
+# Save the dataframe with anomaly predictions
+df.to_csv(r&quot;C:\Users\DELL\Desktop\predict\brisbane_anomalies_isoforest.csv&quot;, index=False)
+
+# Save the trained model
+joblib.dump(iso_forest, &#x27;isolation_forest_model.joblib&#x27;)
+
+# --- Analysis ---
+# Count the number of anomalies found
+num_anomalies = (predictions == -1).sum()
+print(f&quot;Number of anomalies detected by Isolation Forest: {num_anomalies}&quot;)
+
+# Display the characteristics of the detected anomalies
+print(&quot;\n--- Characteristics of Detected Anomalies ---&quot;)
+anomalies = df[df[&#x27;Anomaly_IsolationForest&#x27;] == -1]
+print(anomalies.describe())
+
+print(&quot;\n--- Characteristics of Normal Data ---&quot;)
+normal_data = df[df[&#x27;Anomaly_IsolationForest&#x27;] == 1]
+print(normal_data.describe())
+
+print(&quot;\nIsolation Forest analysis complete. Results saved to brisbane_anomalies_isoforest.csv&quot;)
+</code></pre>
+    
+    <h2>Output</h2>
+    <pre class="output"><code>Number of anomalies detected by Isolation Forest: 309
+
+--- Characteristics of Detected Anomalies ---
+       Average Water Speed  ...  Anomaly_IsolationForest
+count            309.00000  ...                    309.0
+mean              14.79922  ...                     -1.0
+std               17.71067  ...                      0.0
+min                0.18200  ...                     -1.0
+25%                4.80100  ...                     -1.0
+50%                8.03600  ...                     -1.0
+75%               13.37100  ...                     -1.0
+max               85.87600  ...                     -1.0
+
+[8 rows x 15 columns]
+
+--- Characteristics of Normal Data ---
+       Average Water Speed  ...  Anomaly_IsolationForest
+count         30585.000000  ...                  30585.0
+mean             16.819394  ...                      1.0
+std              13.109565  ...                      0.0
+min               0.000000  ...                      1.0
+25%               6.631000  ...                      1.0
+50%              13.480000  ...                      1.0
+75%              23.652000  ...                      1.0
+max              89.912000  ...                      1.0
+
+[8 rows x 15 columns]
+
+Isolation Forest analysis complete. Results saved to brisbane_anomalies_isoforest.csv
+</code></pre>
+
+</body>
+</html>

@@ -1,0 +1,144 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>02 Data Preprocessing</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        h1, h2 { color: #333; }
+        .code, .output, .error {
+            background-color: #f5f5f5;
+            padding: 1em;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .code { background-color: #2d2d2d; color: #f1f1f1; }
+        .error { background-color: #fff0f0; color: #c00; }
+    </style>
+</head>
+<body>
+    <h1>02 Data Preprocessing</h1>
+    <h2>Code</h2>
+    <pre class="code"><code>
+import pandas as pd
+import numpy as np
+
+# Load the dataset
+df = pd.read_csv(r&quot;C:\Users\DELL\Desktop\predict\drinking-water-quality-distribution-monitoring-data.csv&quot;, low_memory=False)
+
+# 1. Clean Target Variables
+# Define deterioration as any value not &#x27;&lt;1&#x27; in Coliform or E.coli
+def is_deteriorated(row):
+    coliform = str(row[&#x27;Coliform (Quanti-Tray) (MPN /100mL)&#x27;]).strip()
+    ecoli = str(row[&#x27;E.coli(Quanti-Tray) (MPN/100mL)&#x27;]).strip()
+    if coliform != &#x27;&lt;1&#x27; or ecoli != &#x27;&lt;1&#x27;:
+        return 1
+    return 0
+
+df[&#x27;Deterioration&#x27;] = df.apply(is_deteriorated, axis=1)
+
+print(&quot;Value counts of Deterioration:&quot;)
+print(df[&#x27;Deterioration&#x27;].value_counts())
+
+# 2. Clean Numerical Columns
+# Convert Turbidity to numeric, coercing errors
+df[&#x27;Turbidity (NTU)&#x27;] = pd.to_numeric(df[&#x27;Turbidity (NTU)&#x27;], errors=&#x27;coerce&#x27;)
+
+# Handle negative chlorine values
+df.loc[df[&#x27;Residual Free Chlorine (mg/L)&#x27;] &lt; 0, &#x27;Residual Free Chlorine (mg/L)&#x27;] = np.nan
+
+# 3. Handle Missing Values
+# Drop Fluoride column
+df = df.drop(columns=[&#x27;Fluoride (mg/L)&#x27;])
+
+# Impute missing values with the mean
+df[&#x27;Turbidity (NTU)&#x27;].fillna(df[&#x27;Turbidity (NTU)&#x27;].mean(), inplace=True)
+df[&#x27;Residual Free Chlorine (mg/L)&#x27;].fillna(df[&#x27;Residual Free Chlorine (mg/L)&#x27;].mean(), inplace=True)
+
+# 4. Feature Engineering (Date/Time)
+def clean_time(time_str):
+    time_str = str(time_str).strip()
+    if time_str == &#x27;:&#x27;:
+        return None
+    if len(time_str) == 4 and time_str.isdigit():
+        return time_str[:2] + &#x27;:&#x27; + time_str[2:]
+    return time_str
+
+df[&#x27;Sample Time&#x27;] = df[&#x27;Sample Time&#x27;].apply(clean_time)
+
+df[&#x27;Sample_DateTime&#x27;] = pd.to_datetime(df[&#x27;Sample Date&#x27;] + &#x27; &#x27; + df[&#x27;Sample Time&#x27;], errors=&#x27;coerce&#x27;)
+df.dropna(subset=[&#x27;Sample_DateTime&#x27;], inplace=True)
+
+df[&#x27;Sample_Month&#x27;] = df[&#x27;Sample_DateTime&#x27;].dt.month
+df[&#x27;Sample_DayOfWeek&#x27;] = df[&#x27;Sample_DateTime&#x27;].dt.dayofweek
+df[&#x27;Sample_Hour&#x27;] = df[&#x27;Sample_DateTime&#x27;].dt.hour
+
+# 5. Categorical Features
+print(&quot;\nNumber of unique Sample Sites:&quot;, df[&#x27;Sample Site&#x27;].nunique())
+print(&quot;Number of unique Locations:&quot;, df[&#x27;Location&#x27;].nunique())
+
+# Drop original date/time and high cardinality columns for baseline model
+df = df.drop(columns=[&#x27;Sample Number&#x27;, &#x27;Sample Date&#x27;, &#x27;Sample Time&#x27;, &#x27;Sample Site&#x27;, &#x27;Location&#x27;, &#x27;Sample_DateTime&#x27;, &#x27;Coliform (Quanti-Tray) (MPN /100mL)&#x27;, &#x27;E.coli(Quanti-Tray) (MPN/100mL)&#x27;])
+
+# Display info of the cleaned dataframe
+print(&quot;\nInfo of the cleaned dataframe:&quot;)
+df.info()
+
+# Save the preprocessed data
+df.to_csv(r&quot;C:\Users\DELL\Desktop\predict\drinking-water-quality-preprocessed.csv&quot;, index=False)
+
+print(&quot;\nPreprocessing complete. Cleaned data saved to drinking-water-quality-preprocessed.csv&quot;)
+</code></pre>
+    
+    <h2>Output</h2>
+    <pre class="output"><code>Value counts of Deterioration:
+Deterioration
+0    72436
+1      273
+Name: count, dtype: int64
+
+Number of unique Sample Sites: 398
+Number of unique Locations: 1262
+
+Info of the cleaned dataframe:
+&lt;class &#x27;pandas.core.frame.DataFrame&#x27;&gt;
+Index: 72708 entries, 0 to 72708
+Data columns (total 7 columns):
+ #   Column                         Non-Null Count  Dtype  
+---  ------                         --------------  -----  
+ 0   Sample class                   72708 non-null  object 
+ 1   Residual Free Chlorine (mg/L)  72708 non-null  float64
+ 2   Turbidity (NTU)                72708 non-null  float64
+ 3   Deterioration                  72708 non-null  int64  
+ 4   Sample_Month                   72708 non-null  int32  
+ 5   Sample_DayOfWeek               72708 non-null  int32  
+ 6   Sample_Hour                    72708 non-null  int32  
+dtypes: float64(2), int32(3), int64(1), object(1)
+memory usage: 3.6+ MB
+
+Preprocessing complete. Cleaned data saved to drinking-water-quality-preprocessed.csv
+</code></pre>
+
+    <h2>Errors</h2>
+    <pre class="error"><code>C:\Users\DELL\Desktop\predict\notebooks\02_Data_Preprocessing.py:34: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing &#x27;df[col].method(value, inplace=True)&#x27;, try using &#x27;df.method({col: value}, inplace=True)&#x27; or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  df[&#x27;Turbidity (NTU)&#x27;].fillna(df[&#x27;Turbidity (NTU)&#x27;].mean(), inplace=True)
+C:\Users\DELL\Desktop\predict\notebooks\02_Data_Preprocessing.py:35: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing &#x27;df[col].method(value, inplace=True)&#x27;, try using &#x27;df.method({col: value}, inplace=True)&#x27; or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  df[&#x27;Residual Free Chlorine (mg/L)&#x27;].fillna(df[&#x27;Residual Free Chlorine (mg/L)&#x27;].mean(), inplace=True)
+C:\Users\DELL\Desktop\predict\notebooks\02_Data_Preprocessing.py:48: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+  df[&#x27;Sample_DateTime&#x27;] = pd.to_datetime(df[&#x27;Sample Date&#x27;] + &#x27; &#x27; + df[&#x27;Sample Time&#x27;], errors=&#x27;coerce&#x27;)
+</code></pre>
+
+</body>
+</html>

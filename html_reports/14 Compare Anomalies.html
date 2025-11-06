@@ -1,0 +1,154 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>14 Compare Anomalies</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        h1, h2 { color: #333; }
+        .code, .output, .error {
+            background-color: #f5f5f5;
+            padding: 1em;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .code { background-color: #2d2d2d; color: #f1f1f1; }
+        .error { background-color: #fff0f0; color: #c00; }
+    </style>
+</head>
+<body>
+    <h1>14 Compare Anomalies</h1>
+    <h2>Code</h2>
+    <pre class="code"><code>
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from matplotlib_venn import venn3
+import os
+
+# Load the results from the three models
+df_iso = pd.read_csv(r&quot;C:\Users\DELL\Desktop\predict\brisbane_anomalies_isoforest.csv&quot;)
+df_lof = pd.read_csv(r&quot;C:\Users\DELL\Desktop\predict\brisbane_anomalies_lof.csv&quot;)
+df_auto = pd.read_csv(r&quot;C:\Users\DELL\Desktop\predict\brisbane_anomalies_autoencoder.csv&quot;)
+
+# Create a summary dataframe
+df_summary = pd.DataFrame({
+    &#x27;IsolationForest&#x27;: df_iso[&#x27;Anomaly_IsolationForest&#x27;] == -1,
+    &#x27;LOF&#x27;: df_lof[&#x27;Anomaly_LOF&#x27;] == -1,
+    &#x27;Autoencoder&#x27;: df_auto[&#x27;Anomaly_Autoencoder&#x27;] == 1
+})
+
+# --- 1. In-depth Comparison ---
+
+# Calculate the overlap
+overlap_all_three = (df_summary[&#x27;IsolationForest&#x27;] &amp; df_summary[&#x27;LOF&#x27;] &amp; df_summary[&#x27;Autoencoder&#x27;]).sum()
+overlap_iso_lof = (df_summary[&#x27;IsolationForest&#x27;] &amp; df_summary[&#x27;LOF&#x27;]).sum()
+overlap_iso_auto = (df_summary[&#x27;IsolationForest&#x27;] &amp; df_summary[&#x27;Autoencoder&#x27;]).sum()
+overlap_lof_auto = (df_summary[&#x27;LOF&#x27;] &amp; df_summary[&#x27;Autoencoder&#x27;]).sum()
+
+print(&quot;--- Anomaly Detection Overlap ---&quot;)
+print(f&quot;Anomalies detected by Isolation Forest only: {(df_summary[&#x27;IsolationForest&#x27;] &amp; ~df_summary[&#x27;LOF&#x27;] &amp; ~df_summary[&#x27;Autoencoder&#x27;]).sum()}&quot;)
+print(f&quot;Anomalies detected by LOF only: {(~df_summary[&#x27;IsolationForest&#x27;] &amp; df_summary[&#x27;LOF&#x27;] &amp; ~df_summary[&#x27;Autoencoder&#x27;]).sum()}&quot;)
+print(f&quot;Anomalies detected by Autoencoder only: {(~df_summary[&#x27;IsolationForest&#x27;] &amp; ~df_summary[&#x27;LOF&#x27;] &amp; df_summary[&#x27;Autoencoder&#x27;]).sum()}&quot;)
+print(&quot;-&quot; * 20)
+print(f&quot;Overlap between Isolation Forest and LOF: {overlap_iso_lof}&quot;)
+print(f&quot;Overlap between Isolation Forest and Autoencoder: {overlap_iso_auto}&quot;)
+print(f&quot;Overlap between LOF and Autoencoder: {overlap_lof_auto}&quot;)
+print(&quot;-&quot; * 20)
+print(f&quot;Anomalies detected by all three models: {overlap_all_three}&quot;)
+
+# Analyze the characteristics of the common anomalies
+print(&quot;\n--- Characteristics of Anomalies Detected by All Three Models ---&quot;)
+common_anomalies_indices = df_summary[df_summary.all(axis=1)].index
+common_anomalies_df = df_iso.loc[common_anomalies_indices]
+print(common_anomalies_df.describe())
+
+
+# --- 2. Visualizations ---
+
+# Create the static directory if it doesn&#x27;t exist
+static_dir = r&quot;C:\Users\DELL\Desktop\predict\app\static&quot;
+if not os.path.exists(static_dir):
+    os.makedirs(static_dir)
+
+# Venn Diagram
+plt.figure(figsize=(10, 10))
+venn3(subsets=(df_summary[&#x27;IsolationForest&#x27;].sum() - (overlap_iso_lof + overlap_iso_auto - overlap_all_three),
+                  df_summary[&#x27;LOF&#x27;].sum() - (overlap_iso_lof + overlap_lof_auto - overlap_all_three),
+                  overlap_iso_lof - overlap_all_three,
+                  df_summary[&#x27;Autoencoder&#x27;].sum() - (overlap_iso_auto + overlap_lof_auto - overlap_all_three),
+                  overlap_iso_auto - overlap_all_three,
+                  overlap_lof_auto - overlap_all_three,
+                  overlap_all_three),
+      set_labels=(&#x27;Isolation Forest&#x27;, &#x27;Local Outlier Factor&#x27;, &#x27;Autoencoder&#x27;))
+plt.title(&quot;Overlap of Anomaly Detection Models&quot;, fontsize=16)
+plt.savefig(os.path.join(static_dir, &#x27;brisbane_anomaly_overlap_venn.png&#x27;))
+plt.close()
+
+# Scatter Plot
+plt.figure(figsize=(14, 9))
+df_summary[&#x27;Chlorophyll&#x27;] = df_iso[&#x27;Chlorophyll&#x27;]
+df_summary[&#x27;Turbidity&#x27;] = df_iso[&#x27;Turbidity&#x27;]
+
+# Create a category column for plotting
+def get_category(row):
+    if row[&#x27;IsolationForest&#x27;] and row[&#x27;LOF&#x27;] and row[&#x27;Autoencoder&#x27;]:
+        return &#x27;All Three&#x27;
+    if row[&#x27;IsolationForest&#x27;] and row[&#x27;LOF&#x27;]:
+        return &#x27;ISO &amp; LOF&#x27;
+    if row[&#x27;IsolationForest&#x27;] and row[&#x27;Autoencoder&#x27;]:
+        return &#x27;ISO &amp; Auto&#x27;
+    if row[&#x27;LOF&#x27;] and row[&#x27;Autoencoder&#x27;]:
+        return &#x27;LOF &amp; Auto&#x27;
+    if row[&#x27;IsolationForest&#x27;]:
+        return &#x27;Isolation Forest Only&#x27;
+    if row[&#x27;LOF&#x27;]:
+        return &#x27;LOF Only&#x27;
+    if row[&#x27;Autoencoder&#x27;]:
+        return &#x27;Autoencoder Only&#x27;
+    return &#x27;Normal&#x27;
+
+df_summary[&#x27;Category&#x27;] = df_summary.apply(get_category, axis=1)
+
+sns.scatterplot(data=df_summary[df_summary[&#x27;Category&#x27;] != &#x27;Normal&#x27;], 
+                x=&#x27;Chlorophyll&#x27;, y=&#x27;Turbidity&#x27;, hue=&#x27;Category&#x27;, palette=&#x27;viridis&#x27;, s=100, alpha=0.7)
+plt.title(&#x27;Anomalies by Chlorophyll and Turbidity&#x27;, fontsize=16)
+plt.tight_layout()
+plt.savefig(os.path.join(static_dir, &#x27;brisbane_anomaly_comparison_scatter.png&#x27;))
+plt.close()
+
+print(&quot;\nComparison and visualization complete. Plots saved to app/static directory.&quot;)
+</code></pre>
+    
+    <h2>Output</h2>
+    <pre class="output"><code>--- Anomaly Detection Overlap ---
+Anomalies detected by Isolation Forest only: 161
+Anomalies detected by LOF only: 169
+Anomalies detected by Autoencoder only: 139
+--------------------
+Overlap between Isolation Forest and LOF: 39
+Overlap between Isolation Forest and Autoencoder: 135
+Overlap between LOF and Autoencoder: 61
+--------------------
+Anomalies detected by all three models: 26
+
+--- Characteristics of Anomalies Detected by All Three Models ---
+       Average Water Speed  ...  Anomaly_IsolationForest
+count            26.000000  ...                     26.0
+mean             21.190192  ...                     -1.0
+std              20.472731  ...                      0.0
+min               2.323000  ...                     -1.0
+25%               5.744250  ...                     -1.0
+50%               9.650000  ...                     -1.0
+75%              37.553250  ...                     -1.0
+max              74.899000  ...                     -1.0
+
+[8 rows x 15 columns]
+
+Comparison and visualization complete. Plots saved to app/static directory.
+</code></pre>
+
+</body>
+</html>

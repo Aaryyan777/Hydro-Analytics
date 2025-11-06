@@ -1,0 +1,141 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>15 Ensemble Model Brisbane</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        h1, h2 { color: #333; }
+        .code, .output, .error {
+            background-color: #f5f5f5;
+            padding: 1em;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .code { background-color: #2d2d2d; color: #f1f1f1; }
+        .error { background-color: #fff0f0; color: #c00; }
+    </style>
+</head>
+<body>
+    <h1>15 Ensemble Model Brisbane</h1>
+    <h2>Code</h2>
+    <pre class="code"><code>
+import pandas as pd
+import numpy as np
+import joblib
+from tensorflow.keras.models import load_model
+from sklearn.preprocessing import StandardScaler
+
+# Load the preprocessed data
+df = pd.read_csv(r&quot;C:\Users\DELL\Desktop\predict\brisbane-water-quality-preprocessed.csv&quot;)
+X = df.drop(columns=[&#x27;Deterioration&#x27;])
+
+# Load the three trained models
+iso_forest = joblib.load(&#x27;isolation_forest_model.joblib&#x27;)
+lof = joblib.load(&#x27;lof_model.joblib&#x27;)
+autoencoder = load_model(&#x27;autoencoder_model.h5&#x27;)
+
+# --- Get Predictions from Each Model ---
+
+# 1. Isolation Forest
+pred_iso = iso_forest.predict(X)
+
+# 2. Local Outlier Factor
+pred_lof = lof.predict(X)
+
+# 3. Autoencoder
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+reconstruction_error = np.mean(np.power(X_scaled - autoencoder.predict(X_scaled), 2), axis=1)
+threshold = np.quantile(reconstruction_error, 0.99)
+pred_auto = np.where(reconstruction_error &gt; threshold, -1, 1)
+
+# --- Create the Ensemble Prediction (Majority Vote) ---
+
+# Combine the predictions into a single dataframe
+predictions_df = pd.DataFrame({
+    &#x27;IsolationForest&#x27;: pred_iso,
+    &#x27;LOF&#x27;: pred_lof,
+    &#x27;Autoencoder&#x27;: pred_auto
+})
+
+# A prediction of -1 is an anomaly. Convert to 0 for normal, 1 for anomaly.
+predictions_df = (predictions_df == -1).astype(int)
+
+# Sum the votes for each row. If the sum is &gt;= 2, it&#x27;s an ensemble anomaly.
+df[&#x27;Anomaly_Ensemble&#x27;] = (predictions_df.sum(axis=1) &gt;= 2).astype(int)
+
+# Save the dataframe with ensemble predictions
+df.to_csv(r&quot;C:\Users\DELL\Desktop\predict\brisbane_anomalies_ensemble.csv&quot;, index=False)
+
+# --- Analysis ---
+# Count the number of anomalies found
+num_anomalies = df[&#x27;Anomaly_Ensemble&#x27;].sum()
+print(f&quot;Number of anomalies detected by Ensemble (Majority Vote): {num_anomalies}&quot;)
+
+# Display the characteristics of the detected anomalies
+print(&quot;\n--- Characteristics of Detected Anomalies (Ensemble) ---&quot;)
+anomalies = df[df[&#x27;Anomaly_Ensemble&#x27;] == 1]
+print(anomalies.describe())
+
+print(&quot;\n--- Characteristics of Normal Data (Ensemble) ---&quot;)
+normal_data = df[df[&#x27;Anomaly_Ensemble&#x27;] == 0]
+print(normal_data.describe())
+
+print(&quot;\nEnsemble model analysis complete. Results saved to brisbane_anomalies_ensemble.csv&quot;)
+</code></pre>
+    
+    <h2>Output</h2>
+    <pre class="output"><code>
+[1m  1/966[0m [37m====================[0m [1m57s[0m 59ms/step
+[1m136/966[0m [32m==[0m[37m==================[0m [1m0s[0m 376us/step
+[1m292/966[0m [32m======[0m[37m==============[0m [1m0s[0m 346us/step
+[1m448/966[0m [32m=========[0m[37m===========[0m [1m0s[0m 339us/step
+[1m601/966[0m [32m============[0m[37m========[0m [1m0s[0m 337us/step
+[1m762/966[0m [32m===============[0m[37m=====[0m [1m0s[0m 333us/step
+[1m921/966[0m [32m===================[0m[37m=[0m [1m0s[0m 331us/step
+[1m966/966[0m [32m====================[0m[37m[0m [1m0s[0m 362us/step
+Number of anomalies detected by Ensemble (Majority Vote): 183
+
+--- Characteristics of Detected Anomalies (Ensemble) ---
+       Average Water Speed  ...  Anomaly_Ensemble
+count           183.000000  ...             183.0
+mean             14.935915  ...               1.0
+std              15.858646  ...               0.0
+min               0.000000  ...               1.0
+25%               5.055000  ...               1.0
+50%               8.922000  ...               1.0
+75%              16.279000  ...               1.0
+max              74.899000  ...               1.0
+
+[8 rows x 15 columns]
+
+--- Characteristics of Normal Data (Ensemble) ---
+       Average Water Speed  ...  Anomaly_Ensemble
+count         30711.000000  ...           30711.0
+mean             16.810292  ...               0.0
+std              13.146513  ...               0.0
+min               0.016000  ...               0.0
+25%               6.616500  ...               0.0
+50%              13.440000  ...               0.0
+75%              23.622500  ...               0.0
+max              89.912000  ...               0.0
+
+[8 rows x 15 columns]
+
+Ensemble model analysis complete. Results saved to brisbane_anomalies_ensemble.csv
+</code></pre>
+
+    <h2>Errors</h2>
+    <pre class="error"><code>2025-11-05 10:55:28.880974: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-11-05 10:55:32.920495: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE3 SSE4.1 SSE4.2 AVX AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+WARNING:absl:Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+C:\Users\DELL\AppData\Roaming\Python\Python311\site-packages\sklearn\utils\validation.py:2739: UserWarning: X does not have valid feature names, but LocalOutlierFactor was fitted with feature names
+  warnings.warn(
+</code></pre>
+
+</body>
+</html>

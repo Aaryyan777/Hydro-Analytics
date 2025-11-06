@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>07 Preprocessing Brisbane</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        h1, h2 { color: #333; }
+        .code, .output, .error {
+            background-color: #f5f5f5;
+            padding: 1em;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .code { background-color: #2d2d2d; color: #f1f1f1; }
+        .error { background-color: #fff0f0; color: #c00; }
+    </style>
+</head>
+<body>
+    <h1>07 Preprocessing Brisbane</h1>
+    <h2>Code</h2>
+    <pre class="code"><code>
+import pandas as pd
+import numpy as np
+
+# Load the dataset
+df = pd.read_csv(r&quot;C:\Users\DELL\Desktop\predict\brisbane_water_quality.csv&quot;)
+
+# 1. Drop Quality Columns
+quality_cols = [col for col in df.columns if &#x27;[quality]&#x27; in col]
+df = df.drop(columns=quality_cols)
+
+# 2. Handle Missing Values (Mean Imputation)
+for col in df.columns:
+    if df[col].dtype in [&#x27;float64&#x27;, &#x27;int64&#x27;]:
+        df[col].fillna(df[col].mean(), inplace=True)
+
+# 3. Engineer Target Variable (&#x27;Deterioration&#x27;)
+# Define thresholds for deterioration
+turbidity_threshold = df[&#x27;Turbidity&#x27;].quantile(0.90)
+do_threshold = df[&#x27;Dissolved Oxygen&#x27;].quantile(0.10)
+ph_low_threshold = 6.5
+ph_high_threshold = 8.5
+
+def is_deteriorated(row):
+    if (row[&#x27;Turbidity&#x27;] &gt; turbidity_threshold and 
+        (row[&#x27;Dissolved Oxygen&#x27;] &lt; do_threshold or 
+         row[&#x27;pH&#x27;] &lt; ph_low_threshold or 
+         row[&#x27;pH&#x27;] &gt; ph_high_threshold)):
+        return 1
+    return 0
+
+df[&#x27;Deterioration&#x27;] = df.apply(is_deteriorated, axis=1)
+
+print(&quot;Value counts of Deterioration:&quot;)
+print(df[&#x27;Deterioration&#x27;].value_counts())
+
+# 4. Feature Engineering (Date/Time)
+df[&#x27;Timestamp&#x27;] = pd.to_datetime(df[&#x27;Timestamp&#x27;])
+df[&#x27;Sample_Month&#x27;] = df[&#x27;Timestamp&#x27;].dt.month
+df[&#x27;Sample_DayOfWeek&#x27;] = df[&#x27;Timestamp&#x27;].dt.dayofweek
+df[&#x27;Sample_Hour&#x27;] = df[&#x27;Timestamp&#x27;].dt.hour
+
+# 5. Drop unnecessary columns
+df = df.drop(columns=[&#x27;Timestamp&#x27;, &#x27;Record number&#x27;])
+
+# Display info of the cleaned dataframe
+print(&quot;\nInfo of the cleaned dataframe:&quot;)
+df.info()
+
+# Save the preprocessed data
+df.to_csv(r&quot;C:\Users\DELL\Desktop\predict\brisbane-water-quality-preprocessed.csv&quot;, index=False)
+
+print(&quot;\nPreprocessing complete. Cleaned data saved to brisbane-water-quality-preprocessed.csv&quot;)
+</code></pre>
+    
+    <h2>Output</h2>
+    <pre class="output"><code>Value counts of Deterioration:
+Deterioration
+0    30652
+1      242
+Name: count, dtype: int64
+
+Info of the cleaned dataframe:
+&lt;class &#x27;pandas.core.frame.DataFrame&#x27;&gt;
+RangeIndex: 30894 entries, 0 to 30893
+Data columns (total 14 columns):
+ #   Column                          Non-Null Count  Dtype  
+---  ------                          --------------  -----  
+ 0   Average Water Speed             30894 non-null  float64
+ 1   Average Water Direction         30894 non-null  float64
+ 2   Chlorophyll                     30894 non-null  float64
+ 3   Temperature                     30894 non-null  float64
+ 4   Dissolved Oxygen                30894 non-null  float64
+ 5   Dissolved Oxygen (%Saturation)  30894 non-null  float64
+ 6   pH                              30894 non-null  float64
+ 7   Salinity                        30894 non-null  float64
+ 8   Specific Conductance            30894 non-null  float64
+ 9   Turbidity                       30894 non-null  float64
+ 10  Deterioration                   30894 non-null  int64  
+ 11  Sample_Month                    30894 non-null  int32  
+ 12  Sample_DayOfWeek                30894 non-null  int32  
+ 13  Sample_Hour                     30894 non-null  int32  
+dtypes: float64(10), int32(3), int64(1)
+memory usage: 2.9 MB
+
+Preprocessing complete. Cleaned data saved to brisbane-water-quality-preprocessed.csv
+</code></pre>
+
+    <h2>Errors</h2>
+    <pre class="error"><code>C:\Users\DELL\Desktop\predict\notebooks\07_Preprocessing_Brisbane.py:15: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing &#x27;df[col].method(value, inplace=True)&#x27;, try using &#x27;df.method({col: value}, inplace=True)&#x27; or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  df[col].fillna(df[col].mean(), inplace=True)
+</code></pre>
+
+</body>
+</html>

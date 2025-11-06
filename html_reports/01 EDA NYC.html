@@ -1,0 +1,175 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>01 EDA NYC</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        h1, h2 { color: #333; }
+        .code, .output, .error {
+            background-color: #f5f5f5;
+            padding: 1em;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .code { background-color: #2d2d2d; color: #f1f1f1; }
+        .error { background-color: #fff0f0; color: #c00; }
+    </style>
+</head>
+<body>
+    <h1>01 EDA NYC</h1>
+    <h2>Code</h2>
+    <pre class="code"><code>
+import pandas as pd
+
+# Load the dataset
+df = pd.read_csv(r&quot;C:\Users\DELL\Desktop\predict\drinking-water-quality-distribution-monitoring-data.csv&quot;)
+
+# Print the head of the dataframe
+print(&quot;Head of the dataframe:&quot;)
+print(df.head())
+
+# Print the info of the dataframe
+print(&quot;\nInfo of the dataframe:&quot;)
+df.info()
+
+# Print the summary statistics
+print(&quot;\nSummary statistics:&quot;)
+print(df.describe())
+
+# Print the value counts of the target variables
+print(&quot;\nValue counts of Coliform:&quot;)
+print(df[&#x27;Coliform (Quanti-Tray) (MPN /100mL)&#x27;].value_counts())
+
+print(&quot;\nValue counts of E.coli:&quot;)
+print(df[&#x27;E.coli(Quanti-Tray) (MPN/100mL)&#x27;].value_counts())
+
+# Check for missing values
+print(&quot;\nMissing values percentage:&quot;)
+print(df.isnull().sum() / len(df) * 100)
+</code></pre>
+    
+    <h2>Output</h2>
+    <pre class="output"><code>Head of the dataframe:
+   Sample Number  ... E.coli(Quanti-Tray) (MPN/100mL)
+0        32355.0  ...                              &lt;1
+1        32320.0  ...                              &lt;1
+2        32357.0  ...                              &lt;1
+3        32353.0  ...                              &lt;1
+4        32371.0  ...                              &lt;1
+
+[5 rows x 11 columns]
+
+Info of the dataframe:
+&lt;class &#x27;pandas.core.frame.DataFrame&#x27;&gt;
+RangeIndex: 72709 entries, 0 to 72708
+Data columns (total 11 columns):
+ #   Column                               Non-Null Count  Dtype  
+---  ------                               --------------  -----  
+ 0   Sample Number                        63845 non-null  float64
+ 1   Sample Date                          72709 non-null  object 
+ 2   Sample Time                          72709 non-null  object 
+ 3   Sample Site                          72709 non-null  object 
+ 4   Sample class                         72709 non-null  object 
+ 5   Location                             72709 non-null  object 
+ 6   Residual Free Chlorine (mg/L)        72706 non-null  float64
+ 7   Turbidity (NTU)                      72507 non-null  object 
+ 8   Fluoride (mg/L)                      9374 non-null   object 
+ 9   Coliform (Quanti-Tray) (MPN /100mL)  72709 non-null  object 
+ 10  E.coli(Quanti-Tray) (MPN/100mL)      72709 non-null  object 
+dtypes: float64(2), object(9)
+memory usage: 6.1+ MB
+
+Summary statistics:
+       Sample Number  Residual Free Chlorine (mg/L)
+count   63845.000000                   72706.000000
+mean    25967.485582                       0.584461
+std     16829.181594                       0.210642
+min         1.000000                      -9.990000
+25%     13432.000000                       0.450000
+50%     24368.000000                       0.590000
+75%     34265.000000                       0.720000
+max     70207.000000                       2.200000
+
+Value counts of Coliform:
+Coliform (Quanti-Tray) (MPN /100mL)
+&lt;1        72436
+1           102
+&gt;200.5       33
+2            28
+3.1          20
+4.2           9
+6.4           8
+7.5           5
+5.3           4
+12.4          3
+9.9           3
+16.4          3
+13.7          3
+8.7           3
+200.5         3
+3             3
+34.4          3
+165.2         2
+15            2
+17.8          2
+36.4          2
+11.1          2
+144.5         2
+20.7          2
+23.8          2
+30.6          2
+10            2
+-             1
+88.5          1
+73.8          1
+45.3          1
+69.7          1
+118.4         1
+22.2          1
+62.4          1
+8             1
+6             1
+145           1
+65.9          1
+19.2          1
+18            1
+28.8          1
+5             1
+83.1          1
+25.4          1
+78.2          1
+29            1
+Name: count, dtype: int64
+
+Value counts of E.coli:
+E.coli(Quanti-Tray) (MPN/100mL)
+&lt;1    72704
+1         4
+-         1
+Name: count, dtype: int64
+
+Missing values percentage:
+Sample Number                          12.191063
+Sample Date                             0.000000
+Sample Time                             0.000000
+Sample Site                             0.000000
+Sample class                            0.000000
+Location                                0.000000
+Residual Free Chlorine (mg/L)           0.004126
+Turbidity (NTU)                         0.277820
+Fluoride (mg/L)                        87.107511
+Coliform (Quanti-Tray) (MPN /100mL)     0.000000
+E.coli(Quanti-Tray) (MPN/100mL)         0.000000
+dtype: float64
+</code></pre>
+
+    <h2>Errors</h2>
+    <pre class="error"><code>C:\Users\DELL\Desktop\predict\notebooks\01_EDA_NYC.py:5: DtypeWarning: Columns (7,8) have mixed types. Specify dtype option on import or set low_memory=False.
+  df = pd.read_csv(r&quot;C:\Users\DELL\Desktop\predict\drinking-water-quality-distribution-monitoring-data.csv&quot;)
+</code></pre>
+
+</body>
+</html>

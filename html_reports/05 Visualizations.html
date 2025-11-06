@@ -1,0 +1,194 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>05 Visualizations</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        h1, h2 { color: #333; }
+        .code, .output, .error {
+            background-color: #f5f5f5;
+            padding: 1em;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .code { background-color: #2d2d2d; color: #f1f1f1; }
+        .error { background-color: #fff0f0; color: #c00; }
+    </style>
+</head>
+<body>
+    <h1>05 Visualizations</h1>
+    <h2>Code</h2>
+    <pre class="code"><code>
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import joblib
+from sklearn.model_selection import cross_val_predict
+from sklearn.metrics import roc_curve, auc, confusion_matrix, precision_recall_curve
+
+# Load the preprocessed data
+df = pd.read_csv(r&quot;C:\Users\DELL\Desktop\predict\drinking-water-quality-preprocessed.csv&quot;)
+
+# Load the trained model
+model = joblib.load(r&quot;C:\Users\DELL\Desktop\predict\app\water_quality_model_xgb.joblib&quot;)
+
+# Create the static directory if it doesn&#x27;t exist
+import os
+static_dir = r&quot;C:\Users\DELL\Desktop\predict\app\static&quot;
+if not os.path.exists(static_dir):
+    os.makedirs(static_dir)
+
+# Set the style
+sns.set_style(&quot;whitegrid&quot;)
+palette = &quot;viridis&quot;
+
+# 1. Distribution of Numerical Features
+plt.figure(figsize=(12, 7))
+sns.histplot(df[&#x27;Residual Free Chlorine (mg/L)&#x27;], kde=True, color=sns.color_palette(palette)[0])
+plt.title(&#x27;Distribution of Residual Free Chlorine&#x27;, fontsize=16)
+plt.tight_layout()
+plt.savefig(os.path.join(static_dir, &#x27;distribution_chlorine.png&#x27;))
+plt.close()
+
+plt.figure(figsize=(12, 7))
+sns.histplot(df[&#x27;Turbidity (NTU)&#x27;], kde=True, color=sns.color_palette(palette)[1])
+plt.title(&#x27;Distribution of Turbidity&#x27;, fontsize=16)
+plt.tight_layout()
+plt.savefig(os.path.join(static_dir, &#x27;distribution_turbidity.png&#x27;))
+plt.close()
+
+# 2. Target Variable Distribution
+plt.figure(figsize=(10, 7))
+sns.countplot(x=&#x27;Deterioration&#x27;, data=df, palette=palette)
+plt.title(&#x27;Distribution of Target Variable (Deterioration)&#x27;, fontsize=16)
+plt.tight_layout()
+plt.savefig(os.path.join(static_dir, &#x27;target_distribution.png&#x27;))
+plt.close()
+
+# 3. Feature Importance
+encoder = joblib.load(r&quot;C:\Users\DELL\Desktop\predict\app\encoder.joblib&quot;)
+original_cols = df.drop(columns=[&#x27;Deterioration&#x27;]).columns.tolist()
+cat_features = encoder.get_feature_names_out([&#x27;Sample class&#x27;])
+num_features = [col for col in original_cols if col != &#x27;Sample class&#x27;]
+feature_names = num_features + list(cat_features)
+
+importances = model.feature_importances_
+feature_importance_df = pd.DataFrame({&#x27;feature&#x27;: feature_names, &#x27;importance&#x27;: importances})
+feature_importance_df = feature_importance_df.sort_values(by=&#x27;importance&#x27;, ascending=False)
+
+plt.figure(figsize=(14, 9))
+sns.barplot(x=&#x27;importance&#x27;, y=&#x27;feature&#x27;, data=feature_importance_df, palette=palette)
+plt.title(&#x27;Feature Importance&#x27;, fontsize=16)
+plt.tight_layout()
+plt.savefig(os.path.join(static_dir, &#x27;feature_importance.png&#x27;))
+plt.close()
+
+# 4. Correlation Matrix
+plt.figure(figsize=(12, 9))
+sns.heatmap(df[num_features].corr(), annot=True, cmap=&#x27;coolwarm&#x27;, fmt=&quot;.2f&quot;)
+plt.title(&#x27;Correlation Matrix of Numerical Features&#x27;, fontsize=16)
+plt.tight_layout()
+plt.savefig(os.path.join(static_dir, &#x27;correlation_heatmap.png&#x27;))
+plt.close()
+
+# 5. Deterioration over Time
+original_df = pd.read_csv(r&quot;C:\Users\DELL\Desktop\predict\drinking-water-quality-distribution-monitoring-data.csv&quot;, low_memory=False)
+
+def is_deteriorated(row):
+    coliform = str(row[&#x27;Coliform (Quanti-Tray) (MPN /100mL)&#x27;]).strip()
+    ecoli = str(row[&#x27;E.coli(Quanti-Tray) (MPN/100mL)&#x27;]).strip()
+    if coliform != &#x27;&lt;1&#x27; or ecoli != &#x27;&lt;1&#x27;:
+        return 1
+    return 0
+
+original_df[&#x27;Deterioration&#x27;] = original_df.apply(is_deteriorated, axis=1)
+original_df[&#x27;Sample_DateTime&#x27;] = pd.to_datetime(original_df[&#x27;Sample Date&#x27;], errors=&#x27;coerce&#x27;)
+deterioration_by_month = original_df.groupby(original_df[&#x27;Sample_DateTime&#x27;].dt.to_period(&#x27;M&#x27;))[&#x27;Deterioration&#x27;].sum()
+
+plt.figure(figsize=(14, 7))
+deterioration_by_month.plot(kind=&#x27;line&#x27;, color=sns.color_palette(palette)[3])
+plt.title(&#x27;Deterioration Events Over Time&#x27;, fontsize=16)
+plt.ylabel(&#x27;Number of Deterioration Events&#x27;)
+plt.xlabel(&#x27;Month&#x27;)
+plt.tight_layout()
+plt.savefig(os.path.join(static_dir, &#x27;deterioration_over_time.png&#x27;))
+plt.close()
+
+# 6. Model Evaluation Plots
+X = df.drop(columns=[&#x27;Deterioration&#x27;])
+y = df[&#x27;Deterioration&#x27;]
+X_encoded = encoder.transform(X[[&#x27;Sample class&#x27;]])
+X_encoded_df = pd.DataFrame(X_encoded, columns=encoder.get_feature_names_out([&#x27;Sample class&#x27;]))
+X = pd.concat([X.drop(columns=[&#x27;Sample class&#x27;]), X_encoded_df], axis=1)
+
+y_pred_proba = cross_val_predict(model, X, y, cv=3, method=&quot;predict_proba&quot;)[:, 1]
+y_pred = cross_val_predict(model, X, y, cv=3)
+
+# ROC-AUC Curve
+fpr, tpr, _ = roc_curve(y, y_pred_proba)
+roc_auc = auc(fpr, tpr)
+
+plt.figure(figsize=(10, 7))
+plt.plot(fpr, tpr, color=sns.color_palette(palette)[2], lw=2, label=&#x27;ROC curve (area = %0.2f)&#x27; % roc_auc)
+plt.plot([0, 1], [0, 1], color=&#x27;navy&#x27;, lw=2, linestyle=&#x27;--&#x27;)
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel(&#x27;False Positive Rate&#x27;)
+plt.ylabel(&#x27;True Positive Rate&#x27;)
+plt.title(&#x27;Receiver Operating Characteristic (ROC) Curve&#x27;, fontsize=16)
+plt.legend(loc=&quot;lower right&quot;)
+plt.tight_layout()
+plt.savefig(os.path.join(static_dir, &#x27;roc_auc_curve.png&#x27;))
+plt.close()
+
+# Confusion Matrix
+cm = confusion_matrix(y, y_pred)
+plt.figure(figsize=(10, 7))
+sns.heatmap(cm, annot=True, fmt=&quot;d&quot;, cmap=palette)
+plt.title(&#x27;Confusion Matrix&#x27;, fontsize=16)
+plt.ylabel(&#x27;Actual&#x27;)
+plt.xlabel(&#x27;Predicted&#x27;)
+plt.tight_layout()
+plt.savefig(os.path.join(static_dir, &#x27;confusion_matrix.png&#x27;))
+plt.close()
+
+# Precision-Recall Curve
+precision, recall, _ = precision_recall_curve(y, y_pred_proba)
+
+plt.figure(figsize=(10, 7))
+plt.plot(recall, precision, color=sns.color_palette(palette)[4], lw=2)
+plt.xlabel(&#x27;Recall&#x27;)
+plt.ylabel(&#x27;Precision&#x27;)
+plt.title(&#x27;Precision-Recall Curve&#x27;, fontsize=16)
+plt.tight_layout()
+plt.savefig(os.path.join(static_dir, &#x27;precision_recall_curve.png&#x27;))
+plt.close()
+
+print(&quot;Visualizations created and saved to app/static directory.&quot;)
+</code></pre>
+    
+    <h2>Output</h2>
+    <pre class="output"><code>Visualizations created and saved to app/static directory.
+</code></pre>
+
+    <h2>Errors</h2>
+    <pre class="error"><code>C:\Users\DELL\Desktop\predict\notebooks\05_Visualizations.py:42: FutureWarning: 
+
+Passing `palette` without assigning `hue` is deprecated and will be removed in v0.14.0. Assign the `x` variable to `hue` and set `legend=False` for the same effect.
+
+  sns.countplot(x=&#x27;Deterioration&#x27;, data=df, palette=palette)
+C:\Users\DELL\AppData\Roaming\Python\Python311\site-packages\sklearn\base.py:380: InconsistentVersionWarning: Trying to unpickle estimator OneHotEncoder from version 1.7.1 when using version 1.6.1. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+C:\Users\DELL\Desktop\predict\notebooks\05_Visualizations.py:60: FutureWarning: 
+
+Passing `palette` without assigning `hue` is deprecated and will be removed in v0.14.0. Assign the `y` variable to `hue` and set `legend=False` for the same effect.
+
+  sns.barplot(x=&#x27;importance&#x27;, y=&#x27;feature&#x27;, data=feature_importance_df, palette=palette)
+</code></pre>
+
+</body>
+</html>

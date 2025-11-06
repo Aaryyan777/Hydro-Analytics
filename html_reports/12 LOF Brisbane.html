@@ -1,0 +1,111 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>12 LOF Brisbane</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        h1, h2 { color: #333; }
+        .code, .output, .error {
+            background-color: #f5f5f5;
+            padding: 1em;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .code { background-color: #2d2d2d; color: #f1f1f1; }
+        .error { background-color: #fff0f0; color: #c00; }
+    </style>
+</head>
+<body>
+    <h1>12 LOF Brisbane</h1>
+    <h2>Code</h2>
+    <pre class="code"><code>
+import pandas as pd
+from sklearn.neighbors import LocalOutlierFactor
+
+# Load the preprocessed data
+df = pd.read_csv(r&quot;C:\Users\DELL\Desktop\predict\brisbane-water-quality-preprocessed.csv&quot;)
+
+# Drop the rule-based &#x27;Deterioration&#x27; column for unsupervised learning
+X = df.drop(columns=[&#x27;Deterioration&#x27;])
+
+# Initialize and train the LocalOutlierFactor model
+# n_neighbors is a key parameter. We&#x27;ll start with the default of 20.
+# contamination is also used here to define the threshold for outliers.
+lof = LocalOutlierFactor(n_neighbors=20, contamination=0.01, novelty=True)
+lof.fit(X)
+
+# Predict the anomalies (-1 for anomalies, 1 for inliers)
+# Note: For LOF, prediction on the training data is not standard.
+# We use the negative_outlier_factor_ attribute and the offset_ to determine anomalies.
+y_pred = lof.predict(X)
+
+# Add the predictions to the original dataframe
+df[&#x27;Anomaly_LOF&#x27;] = y_pred
+
+# Save the dataframe with anomaly predictions
+df.to_csv(r&quot;C:\Users\DELL\Desktop\predict\brisbane_anomalies_lof.csv&quot;, index=False)
+
+import joblib
+
+# Save the trained model
+joblib.dump(lof, &#x27;lof_model.joblib&#x27;)
+
+# --- Analysis ---
+# Count the number of anomalies found
+num_anomalies = (y_pred == -1).sum()
+print(f&quot;Number of anomalies detected by Local Outlier Factor: {num_anomalies}&quot;)
+
+# Display the characteristics of the detected anomalies
+print(&quot;\n--- Characteristics of Detected Anomalies ---&quot;)
+anomalies = df[df[&#x27;Anomaly_LOF&#x27;] == -1]
+print(anomalies.describe())
+
+print(&quot;\n--- Characteristics of Normal Data ---&quot;)
+normal_data = df[df[&#x27;Anomaly_LOF&#x27;] == 1]
+print(normal_data.describe())
+
+print(&quot;\nLocal Outlier Factor analysis complete. Results saved to brisbane_anomalies_lof.csv&quot;)
+</code></pre>
+    
+    <h2>Output</h2>
+    <pre class="output"><code>Number of anomalies detected by Local Outlier Factor: 243
+
+--- Characteristics of Detected Anomalies ---
+       Average Water Speed  Average Water Direction  ...  Sample_Hour  Anomaly_LOF
+count           243.000000               243.000000  ...   243.000000        243.0
+mean             18.503063               166.738756  ...    10.946502         -1.0
+std              17.684916               113.296817  ...     8.009887          0.0
+min               0.000000                 0.000000  ...     0.000000         -1.0
+25%               4.908000                70.396500  ...     3.000000         -1.0
+50%              11.079000               144.965000  ...    10.000000         -1.0
+75%              29.273000               268.109000  ...    18.000000         -1.0
+max              89.712000               358.972000  ...    23.000000         -1.0
+
+[8 rows x 15 columns]
+
+--- Characteristics of Normal Data ---
+       Average Water Speed  Average Water Direction  ...   Sample_Hour  Anomaly_LOF
+count         30651.000000             30651.000000  ...  30651.000000      30651.0
+mean             16.785680               177.630381  ...     11.466836          1.0
+std              13.122149               103.537293  ...      6.896071          0.0
+min               0.016000                 0.013000  ...      0.000000          1.0
+25%               6.620500                86.476000  ...      6.000000          1.0
+50%              13.416000               176.663000  ...     11.000000          1.0
+75%              23.559000               267.863500  ...     17.000000          1.0
+max              89.912000               359.994000  ...     23.000000          1.0
+
+[8 rows x 15 columns]
+
+Local Outlier Factor analysis complete. Results saved to brisbane_anomalies_lof.csv
+</code></pre>
+
+    <h2>Errors</h2>
+    <pre class="error"><code>C:\Users\DELL\AppData\Roaming\Python\Python311\site-packages\sklearn\utils\validation.py:2739: UserWarning: X does not have valid feature names, but LocalOutlierFactor was fitted with feature names
+  warnings.warn(
+</code></pre>
+
+</body>
+</html>

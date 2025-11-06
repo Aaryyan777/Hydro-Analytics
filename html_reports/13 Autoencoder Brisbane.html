@@ -1,0 +1,139 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>13 Autoencoder Brisbane</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        h1, h2 { color: #333; }
+        .code, .output, .error {
+            background-color: #f5f5f5;
+            padding: 1em;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .code { background-color: #2d2d2d; color: #f1f1f1; }
+        .error { background-color: #fff0f0; color: #c00; }
+    </style>
+</head>
+<body>
+    <h1>13 Autoencoder Brisbane</h1>
+    <h2>Code</h2>
+    <pre class="code"><code>
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Dense
+
+# Load the preprocessed data
+df = pd.read_csv(r&quot;C:\Users\DELL\Desktop\predict\brisbane-water-quality-preprocessed.csv&quot;)
+
+# Drop the rule-based &#x27;Deterioration&#x27; column for unsupervised learning
+X = df.drop(columns=[&#x27;Deterioration&#x27;])
+
+# Scale the data
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Build the Autoencoder model
+input_dim = X_scaled.shape[1]
+encoding_dim = 8  # Size of the bottleneck
+
+input_layer = Input(shape=(input_dim,))
+encoder = Dense(encoding_dim, activation=&quot;relu&quot;)(input_layer)
+encoder = Dense(int(encoding_dim / 2), activation=&quot;relu&quot;)(encoder)
+
+decoder = Dense(int(encoding_dim / 2), activation=&#x27;relu&#x27;)(encoder)
+decoder = Dense(input_dim, activation=&#x27;sigmoid&#x27;)(decoder)
+
+autoencoder = Model(inputs=input_layer, outputs=decoder)
+autoencoder.compile(optimizer=&#x27;adam&#x27;, loss=&#x27;mean_squared_error&#x27;)
+
+# Train the model
+autoencoder.fit(X_scaled, X_scaled, epochs=50, batch_size=32, shuffle=True, validation_split=0.2, verbose=0)
+
+# Calculate reconstruction error
+predictions = autoencoder.predict(X_scaled)
+mse = np.mean(np.power(X_scaled - predictions, 2), axis=1)
+df[&#x27;Reconstruction_Error&#x27;] = mse
+
+# Define a threshold for anomalies (e.g., 99th percentile of the error)
+threshold = np.quantile(mse, 0.99)
+df[&#x27;Anomaly_Autoencoder&#x27;] = (mse &gt; threshold).astype(int)
+
+# Save the dataframe with anomaly predictions
+df.to_csv(r&quot;C:\Users\DELL\Desktop\predict\brisbane_anomalies_autoencoder.csv&quot;, index=False)
+
+# Save the trained model
+autoencoder.save(&#x27;autoencoder_model.h5&#x27;)
+
+# --- Analysis ---
+# Count the number of anomalies found
+num_anomalies = (df[&#x27;Anomaly_Autoencoder&#x27;] == 1).sum()
+print(f&quot;Number of anomalies detected by Autoencoder: {num_anomalies}&quot;)
+
+# Display the characteristics of the detected anomalies
+print(&quot;\n--- Characteristics of Detected Anomalies ---&quot;)
+anomalies = df[df[&#x27;Anomaly_Autoencoder&#x27;] == 1]
+print(anomalies.describe())
+
+print(&quot;\n--- Characteristics of Normal Data ---&quot;)
+normal_data = df[df[&#x27;Anomaly_Autoencoder&#x27;] == 0]
+print(normal_data.describe())
+
+print(&quot;\nAutoencoder analysis complete. Results saved to brisbane_anomalies_autoencoder.csv&quot;)
+</code></pre>
+    
+    <h2>Output</h2>
+    <pre class="output"><code>
+[1m  1/966[0m [37m====================[0m [1m30s[0m 31ms/step
+[1m133/966[0m [32m==[0m[37m==================[0m [1m0s[0m 384us/step
+[1m287/966[0m [32m=====[0m[37m===============[0m [1m0s[0m 352us/step
+[1m443/966[0m [32m=========[0m[37m===========[0m [1m0s[0m 342us/step
+[1m595/966[0m [32m============[0m[37m========[0m [1m0s[0m 338us/step
+[1m752/966[0m [32m===============[0m[37m=====[0m [1m0s[0m 336us/step
+[1m903/966[0m [32m==================[0m[37m==[0m [1m0s[0m 336us/step
+[1m966/966[0m [32m====================[0m[37m[0m [1m0s[0m 366us/step
+Number of anomalies detected by Autoencoder: 309
+
+--- Characteristics of Detected Anomalies ---
+       Average Water Speed  ...  Anomaly_Autoencoder
+count           309.000000  ...                309.0
+mean             19.187733  ...                  1.0
+std              16.347230  ...                  0.0
+min               0.000000  ...                  1.0
+25%               6.721000  ...                  1.0
+50%              13.244000  ...                  1.0
+75%              27.083000  ...                  1.0
+max              74.899000  ...                  1.0
+
+[8 rows x 16 columns]
+
+--- Characteristics of Normal Data ---
+       Average Water Speed  ...  Anomaly_Autoencoder
+count         30585.000000  ...              30585.0
+mean             16.775057  ...                  0.0
+std              13.126726  ...                  0.0
+min               0.016000  ...                  0.0
+25%               6.595000  ...                  0.0
+50%              13.407000  ...                  0.0
+75%              23.561000  ...                  0.0
+max              89.912000  ...                  0.0
+
+[8 rows x 16 columns]
+
+Autoencoder analysis complete. Results saved to brisbane_anomalies_autoencoder.csv
+</code></pre>
+
+    <h2>Errors</h2>
+    <pre class="error"><code>2025-11-05 10:54:45.692972: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-11-05 10:54:49.234385: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE3 SSE4.1 SSE4.2 AVX AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save(&#x27;my_model.keras&#x27;)` or `keras.saving.save_model(model, &#x27;my_model.keras&#x27;)`. 
+</code></pre>
+
+</body>
+</html>

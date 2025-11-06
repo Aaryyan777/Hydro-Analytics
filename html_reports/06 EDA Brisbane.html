@@ -1,0 +1,125 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>06 EDA Brisbane</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        h1, h2 { color: #333; }
+        .code, .output, .error {
+            background-color: #f5f5f5;
+            padding: 1em;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .code { background-color: #2d2d2d; color: #f1f1f1; }
+        .error { background-color: #fff0f0; color: #c00; }
+    </style>
+</head>
+<body>
+    <h1>06 EDA Brisbane</h1>
+    <h2>Code</h2>
+    <pre class="code"><code>
+import pandas as pd
+
+# Load the dataset
+df = pd.read_csv(r&quot;C:\Users\DELL\Desktop\predict\brisbane_water_quality.csv&quot;)
+
+# Print the head of the dataframe
+print(&quot;Head of the dataframe:&quot;)
+print(df.head())
+
+# Print the info of the dataframe
+print(&quot;\nInfo of the dataframe:&quot;)
+df.info()
+
+# Print the summary statistics
+print(&quot;\nSummary statistics:&quot;)
+print(df.describe())
+
+# Check for missing values
+print(&quot;\nMissing values percentage:&quot;)
+print(df.isnull().sum() / len(df) * 100)
+</code></pre>
+    
+    <h2>Output</h2>
+    <pre class="output"><code>Head of the dataframe:
+             Timestamp  Record number  ...  Turbidity  Turbidity [quality]
+0  2023-08-04 23:00:00           1468  ...      2.068                  NaN
+1  2023-08-04 23:30:00           1469  ...      1.994                  NaN
+2  2023-08-04 23:00:00           1470  ...      2.030                  NaN
+3  2023-08-04 23:30:00           1471  ...      1.973                  NaN
+4  2023-08-04 23:00:00           1472  ...      1.944                  NaN
+
+[5 rows x 20 columns]
+
+Info of the dataframe:
+&lt;class &#x27;pandas.core.frame.DataFrame&#x27;&gt;
+RangeIndex: 30894 entries, 0 to 30893
+Data columns (total 20 columns):
+ #   Column                                    Non-Null Count  Dtype  
+---  ------                                    --------------  -----  
+ 0   Timestamp                                 30894 non-null  object 
+ 1   Record number                             30894 non-null  int64  
+ 2   Average Water Speed                       30874 non-null  float64
+ 3   Average Water Direction                   30893 non-null  float64
+ 4   Chlorophyll                               30309 non-null  float64
+ 5   Chlorophyll [quality]                     30086 non-null  float64
+ 6   Temperature                               25730 non-null  float64
+ 7   Temperature [quality]                     25550 non-null  float64
+ 8   Dissolved Oxygen                          26594 non-null  float64
+ 9   Dissolved Oxygen [quality]                26370 non-null  float64
+ 10  Dissolved Oxygen (%Saturation)            25145 non-null  float64
+ 11  Dissolved Oxygen (%Saturation) [quality]  24944 non-null  float64
+ 12  pH                                        29810 non-null  float64
+ 13  pH [quality]                              29586 non-null  float64
+ 14  Salinity                                  26936 non-null  float64
+ 15  Salinity [quality]                        26712 non-null  float64
+ 16  Specific Conductance                      29527 non-null  float64
+ 17  Specific Conductance [quality]            29303 non-null  float64
+ 18  Turbidity                                 28894 non-null  float64
+ 19  Turbidity [quality]                       28670 non-null  float64
+dtypes: float64(18), int64(1), object(1)
+memory usage: 4.7+ MB
+
+Summary statistics:
+       Record number  Average Water Speed  ...     Turbidity  Turbidity [quality]
+count   30894.000000         30874.000000  ...  28894.000000              28670.0
+mean    16914.500000            16.799189  ...      3.941688               1020.0
+std      8918.473945            13.168964  ...      4.072715                  0.0
+min      1468.000000             0.000000  ...      0.335000               1020.0
+25%      9191.250000             6.594250  ...      2.354250               1020.0
+50%     16914.500000            13.390500  ...      3.093000               1020.0
+75%     24637.750000            23.600000  ...      4.005000               1020.0
+max     32361.000000            89.912000  ...     49.869000               1020.0
+
+[8 rows x 19 columns]
+
+Missing values percentage:
+Timestamp                                    0.000000
+Record number                                0.000000
+Average Water Speed                          0.064737
+Average Water Direction                      0.003237
+Chlorophyll                                  1.893572
+Chlorophyll [quality]                        2.615395
+Temperature                                 16.715220
+Temperature [quality]                       17.297857
+Dissolved Oxygen                            13.918560
+Dissolved Oxygen [quality]                  14.643620
+Dissolved Oxygen (%Saturation)              18.608791
+Dissolved Oxygen (%Saturation) [quality]    19.259403
+pH                                           3.508772
+pH [quality]                                 4.233832
+Salinity                                    12.811549
+Salinity [quality]                          13.536609
+Specific Conductance                         4.424807
+Specific Conductance [quality]               5.149867
+Turbidity                                    6.473749
+Turbidity [quality]                          7.198809
+dtype: float64
+</code></pre>
+
+</body>
+</html>
